@@ -1,0 +1,132 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+    @Author:        yyg
+    @Create:        2016MMDD
+    @LastUpdate:    2016-12-15 HH:MM:SS
+    @Version:       0.0
+        #
+"""
+from json import load
+from logging import (Formatter, _defaultFormatter, config, exception,
+                     getLogger, FileHandler)
+# import for test only
+from multiprocessing import JoinableQueue, Pool
+from threading import Thread
+
+from params import LOG_CONF_FILE, LOG_LVL_INFO, LOGGER_NAME
+
+
+class LaserjetLogger(object):
+    """
+    While logging module doesn't support multiprocessing logging by default.
+    To create a QueueHandler that emits every single log record into log_queue.
+    Then handle all log records appear in log_queue with a single thread.
+    """
+
+    def __init__(self):
+        self._log_queue = JoinableQueue()
+
+    def create_a_global_logger(self):
+        logger = getLogger(LOGGER_NAME)
+        with open(LOG_CONF_FILE) as log_cfg:
+            # config.dictConfig only available in python 2.7+
+            config.dictConfig(load(log_cfg))
+        # Set QueueHandler as log handler
+        # log_handler = QueueHandler(self._log_queue)
+        # Set Formatter from params.py
+        # with open(LOG_CONF_FILE) as log_cfg:
+        #    log_handler.setFormatter(load(log_cfg)["log_fmt"].decode('utf-8'))
+        # Set Log level from params.py
+        # log_handler.setLevel(LOG_LVL_INFO)
+        # logger.addHandler(log_handler)
+
+    def start(self):
+        self.create_a_global_logger()
+        # log_listener_thread = LogListener(self._log_queue)
+        # log_listener_thread.daemon
+        # log_listener_thread.start()
+
+
+class LogListener(Thread):
+    """
+    By launching a listener thread here, log record would be properly settled
+    """
+
+    def __init__(self, log_queue):
+        super(LogListener, self).__init__()
+        self._log_queue = log_queue
+
+    def run(self):
+        while True:
+            try:
+                _record = self._log_queue.get()
+                if _record is None:
+                    break
+                else:
+                    _logger = getLogger(_record.name)
+                    print "get a log record"
+                    _logger.handle(_record)
+            except(KeyboardInterrupt, SystemExit):
+                raise
+            except EOFError:
+                break
+            except:
+                from traceback import print_exc
+                from sys import stderr
+                print >> stderr, "Whoops, Problems: "
+                print_exc(file=stderr)
+
+
+class QueueHandler(FileHandler):
+    """
+    This is a logging handler which sends events to a multiprocessing queue.
+
+    """
+
+    def __init__(self, log_queue, filename, encoding=None):
+        """
+        By default, cls(FileHandler) used args:
+        (filename, mode='a', encoding=None, delay=0)
+        """
+        super(QueueHandler, self).__init__(filename, encoding)
+        self.log_queue = log_queue
+
+    def emit(self, record):
+        """
+        Emit a record.
+        Writes the LogRecord to the queue.
+        """
+        try:
+            ei = record.exc_info
+            if ei:
+                # just to get traceback text into record.exc_text
+                _defaultFormatter.format(record)
+                record.exc_info = None  # not needed any more
+            formatted_record = dict(record.__dict__)
+            formatted_record["msg"] = record.getMessage()
+            formatted_record["args"] = None
+            self.log_queue.put_nowait(formatted_record)
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except:
+            self.handleError(record)
+
+
+def print_func(anything_str):
+    from os import getpid
+    logger = getLogger()
+    logger.info(
+        "with input {0} running process: [{1}]".format(anything_str, getpid())
+        )
+    print anything_str
+
+if __name__ == "__main__":
+    laserjet_logger = LaserjetLogger()
+    laserjet_logger.start()
+    test_pool = Pool()
+    for i in range(5):
+        test_pool.apply_async(print_func, (i,))
+    test_pool.close()
+    test_pool.join()

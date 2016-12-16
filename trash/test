@@ -1,0 +1,29 @@
+#! /usr/bin/env python
+# coding: utf-8
+
+def outer(out):
+    index = [0]
+    print("out = %s" %out)
+    def inner(inn):
+        print index
+	print("start inner")
+	print("inn = %s" %inn)
+	print("call out from in: %s" % out )
+	return inn
+    return inner
+
+a = outer(11)
+def hellocounter (name):
+    count=[0] 
+    print("outcount "+ str(id(count)))
+    def counter():
+	print("inner count:" + str(id(count)))
+        print 'Hello,',name,',',str(count[0])+' access!'
+    return counter
+
+hello = hellocounter('ma6174')
+hello()
+hello()
+hello() 
+
+
