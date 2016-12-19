@@ -10,7 +10,7 @@
 """
 from json import load
 from logging import (Formatter, _defaultFormatter, exception,
-getLogger, FileHandler, basicConfig, StreamHandler)
+                     getLogger, FileHandler, basicConfig, StreamHandler)
 from cloghandler import ConcurrentRotatingFileHandler
 from params import LOG_CONF_FILE, LOG_LVL, LOGGER_NAME, LOG_FILE, LOG_FMT, LOG_DAT_FMT
 
@@ -36,6 +36,7 @@ class LaserjetLogger(object):
         logger.setLevel(LOG_LVL)
         logger.addHandler(log_handler)
         logger.addHandler(console_handler)
+        logger.info("A Global Logger has been initialized")
 
 
 def print_func(anything_str):
@@ -50,4 +51,3 @@ if __name__ == "__main__":
         test_pool.apply_async(print_func, args=(i,))
     test_pool.close()
     test_pool.join()
-    

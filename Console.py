@@ -9,7 +9,7 @@
     @Description    
         #
 """
-from lib.core.terminals import *
+from lib.core.terminals import MTerminal
 
 
 def run_server():

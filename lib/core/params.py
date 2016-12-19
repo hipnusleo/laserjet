@@ -6,13 +6,13 @@
     @Create:        2016MMDD
     @LastUpdate:    2016MMDD HH:MM:SS
     @Version:       0.0
-    @Description    
+    @Description
         #
 """
 import sys
 from ConfigParser import ConfigParser
 from os.path import *
-from logging import INFO, DEBUG, CRITICAL, WARN, NOTSET
+from logging import INFO, DEBUG, CRITICAL, WARN, NOTSET, getLogger
 from json import load
 
 # Dir Path
@@ -39,11 +39,11 @@ CORE_DIR = join(LIB_DIR, 'core')
 TEST_DIR = join(ROOT_DIR, 'test')
 
 # Config File Names
-BATCH_HOSTS_FILE_NAME = 'batch-hosts.conf'  # 集群主机列表
-BATCH_PARAMS_FILE_NAME = 'batch_params.ini'  # 基本配置参数列表
-BATCH_CMD_FILE_NAME = 'batch_cmd.conf'  # 批量执行命令列表
-BATCH_SYNC_FILE_NAME = 'batch_sync.conf'  # 批量同步文件列表
-BATCH_FETCH_FILE_NAME = 'batch_fetch.conf'  # 批量采集文件列表
+BATCH_HOSTS_FILE_NAME = 'hosts_batch.conf'  # 集群主机列表
+BATCH_PARAMS_FILE_NAME = 'laserjet_conf.ini'  # 基本配置参数列表
+BATCH_CMD_FILE_NAME = 'exec_batch.conf'  # 批量执行命令列表
+BATCH_SYNC_FILE_NAME = 'sync_batch.conf'  # 批量同步文件列表
+BATCH_FETCH_FILE_NAME = 'fetch_batch.conf'  # 批量采集文件列表
 
 # Config File Path
 BATCH_HOSTS_FILE_PATH = join(CONF_DIR, BATCH_HOSTS_FILE_NAME)
@@ -53,7 +53,7 @@ BATCH_SYNC_FILE_PATH = join(CONF_DIR, BATCH_SYNC_FILE_NAME)
 BATCH_FETCH_FILE_PATH = join(CONF_DIR, BATCH_FETCH_FILE_NAME)
 
 # Log File Name
-#LOGGER_NAME = 'laserjet'
+# LOGGER_NAME = 'laserjet'
 LOGGER_NAME = ''
 LOG_FILE_NAME = 'laserjet.log'
 LOG_CONF_FILE_NAME = 'logging-cfg.json'
@@ -75,12 +75,16 @@ LOG_FMT = "%(asctime)s[%(levelname)s] - %(message)s"
 LOG_DAT_FMT = "%Y/%m/%d-%H:%M:%S"
 
 
-# Templates File name
+# All sections in lserjet_conf.ini
+HOSTS_ACCOUNT_INFO = "AccountInfo"
+LASERJET_HOST = "LaserjetHost"
 
-# Templates File Path
+# Method & Class:
+logger = getLogger(LOGGER_NAME)
 
 
 class SingletonBaseClass(object):
+
     def __new__(cls, *args, **kwargs):
         if hasattr(cls, '_instance') is False:
             cls._instance = super(SingletonBaseClass, cls).__new__(cls)
@@ -88,6 +92,7 @@ class SingletonBaseClass(object):
 
 
 class BatchConf(SingletonBaseClass):
+
     def __init__(self):
         super(BatchConf, self).__init__()
         self.batch_hosts_file = BATCH_HOSTS_FILE_PATH
@@ -147,6 +152,10 @@ class BatchConf(SingletonBaseClass):
                                 self.batch_hosts_file, line))
         except IOError as e:
             print(e)
+
+    def get_laserjet_host(self):
+        laserjet_host = self._batch_param.get_laserjet_host()
+        return laserjet_host
 
     def get_batch_cmds(self):
         """ Read commands from BATCH_CMD_FILE
@@ -224,30 +233,35 @@ def singleton_decorator(cls, *args, **kwargs):
     return _singleton
 
 
-
-
-
 @singleton_decorator
 class BatchParams(object):
+
     def __init__(self):
         self.param_file = BATCH_PARAMS_FILE_PATH
         self._cfg = ConfigParser()
+        self._cfg.read(self.param_file)
 
     def load_param_file(self, param_file):
         if param_file is not BATCH_PARAMS_FILE_PATH:
             self.param_file = param_file
 
     def get_account_info(self):
-        self._cfg.read(self.param_file)
-        session_account_info = 'AccountInfo'
-        if self._cfg.has_section(session_account_info):
+        #        self._cfg.read(self.param_file)
+        if self._cfg.has_section(HOSTS_ACCOUNT_INFO):
             return {
-                "username": self._cfg.get(session_account_info, 'username'),
-                "password": self._cfg.get(session_account_info, 'password')
+                "username": self._cfg.get(HOSTS_ACCOUNT_INFO, 'username'),
+                "password": self._cfg.get(HOSTS_ACCOUNT_INFO, 'password')
             }
         else:
             print("file {0} does not contain {1}".format(
-                self.param_file, session_account_info))
+                self.param_file, HOSTS_ACCOUNT_INFO))
+
+    def get_laserjet_host(self):
+        if self._cfg.has_section(LASERJET_HOST):
+            return self._cfg.get(LASERJET_HOST, 'host')
+        else:
+            logger.error(
+                "%s does not contain session [LaserjetHost]" % self.param_file)
 
     def get_yum_repo_addr(self):
         return self._cfg.get('YumRepository', 'yum_repo_addr')
@@ -289,7 +303,7 @@ def only_contain_password(host_pair):
         else:
             return False
     else:
-        print("{} is not a list".format(host_pair))
+        logger.error("{} is not a list".format(host_pair))
 
 
 def contain_both_username_password(host_pair):
@@ -299,19 +313,9 @@ def contain_both_username_password(host_pair):
         else:
             return False
     else:
-        print("{} is not a list".format(host_pair))
+        logger.error("{} is not a list".format(host_pair))
 
 
 if __name__ == '__main__':
     test = SingletonObject()
     test2 = SingletonObject()
-    test3 = object()
-    test4 = object()
-    test5 = SingletonBaseClass()
-    test6 = SingletonBaseClass()
-    print id(test)
-    print id(test2)
-    print id(test3)
-    print id(test4)
-    print id(test5)
-    print id(test6)
