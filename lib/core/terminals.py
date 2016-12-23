@@ -56,7 +56,7 @@ class MTerminal(object):
             host_list.append(each["hostname"])
             # self._host_queue.join()
             logger.debug("worker_pool join")
-        logger.info("Batch process on {0} hosts: {1}".format(
+        logger.info("Batch process on {0} hosts: \n{1}".format(
             (host_num - 1),
             host_list))
         return (host_num - 1)
@@ -70,8 +70,7 @@ class MTerminal(object):
         else:
             worker_pool = Pool()
             logger.info(
-                "A multiprocessing pool with size of "
-                "%d has been activated" % cpu_count())
+                "Pool(%d/%d) activated" % (cpu_count(), cpu_count()))
             _action_funcs = self._batch_options.get_actions()
             host_len = self._load_hosts_queue()
             continue_enable = raw_input(
@@ -87,12 +86,12 @@ class MTerminal(object):
                             action_dispatcher,
                             args=(self._host_queue, _action_funcs,)
                         )
-                    end_time = clock()
-                    logger.info("Total Time: %ds" % (start_time - end_time))
                     worker_pool.close()
                     logger.debug("worker_pool closed")
                     worker_pool.join()
-                    logger.debug("worker_pool done apply_async !!")
+                    end_time = clock()
+                    logger.info("Mission accomplished in %d seconds" %
+                                (start_time - end_time))
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except TimeoutError:
@@ -104,6 +103,9 @@ class MTerminal(object):
             else:
                 logger.info("Task Canceled ... ")
 
+    def pull(self):
+        pass
+
 
 # def get_ssh_client(host):
 #    _ssh_client = SSHClient()
@@ -112,34 +114,26 @@ class MTerminal(object):
 #    logger.debug("Done loading system host keys")
 #    _ssh_client.set_missing_host_key_policy(AutoAddPolicy())
 #    logger.debug("Done setting missing host key policy")
-#    _ssh_client.connect(**host)
-#   return _ssh_client
-def get_ssh_client(host):
-    _ssh_client = SSHClient()
-    logger.debug("Get host info = {0}".format(host))
-    _ssh_client.load_system_host_keys()
-    logger.debug("Done loading system host keys")
-    _ssh_client.set_missing_host_key_policy(AutoAddPolicy())
-    logger.debug("Done setting missing host key policy")
-#    _ssh_client.connect(**host)
-    return [_ssh_client, host]
+#    return [_ssh_client, host]
 
 
 def action_dispatcher(host_queue, action_funcs):
     try:
         logger.debug("Trying to get ssh client from host queue")
         host_info = host_queue.get()
-        _ssh_client = get_ssh_client(host_info)
+        #_ssh_client = get_ssh_client(host_info)  # should be removed
         for action_func in action_funcs:
             logger.info("action_func = %s" % action_func)
-            action_func(_ssh_client, host_info)
+        # inappropriate design here, only **host_info need to pass to each
+        # function
+        #    action_func(_ssh_client, host_info)
+            action_func(host_info)
         host_queue.task_done()
-        logger.info(
-            "process %s has done its task" % getpid())
+        logger.debug("process %s has done its task" % getpid())
     except (KeyboardInterrupt, SystemExit):
         raise
     except Empty:
-        logger.info("host_queue is Empty now")
+        logger.exception("host_queue is Empty")
     except:
         logger.exception("action_dispatcher encounters error")
 

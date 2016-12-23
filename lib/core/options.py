@@ -10,7 +10,7 @@
 """
 
 from argparse import ArgumentParser
-from params import SingletonBaseClass, LOGGER_NAME
+from params import SingletonBaseClass, LOGGER_NAME, VERSION
 from logging import getLogger
 
 
@@ -18,30 +18,43 @@ logger = getLogger(LOGGER_NAME)
 
 
 class BatchOption(SingletonBaseClass):
+
     def __init__(self):
         """ class BatchOption
         :arg ArgumentParser
         """
         super(BatchOption, self).__init__()
-        self._args = ArgumentParser()
+        self._args = ArgumentParser(description=VERSION)
         self._action_options = dict()
         self._args.add_argument(
             "-sync",
             "-s",
             action='store_true',
-            help="batch sync files",
+            help="Sync files.",
         )
         self._args.add_argument(
             "-fetch",
             "-f",
             action="store_true",
-            help="batch fetch files"
+            help="Fetch files."
         )
         self._args.add_argument(
             "-exec",
             "-e",
             action="store_true",
-            help="batch execute cmds"
+            help="Execute commands."
+        )
+        self._args.add_argument(
+            "-inspect",
+            "-i",
+            action="store_true",
+            help="Inspect servers, unsupported in Version 0.0 !!"
+        )
+        self._args.add_argument(
+            "-distribute",
+            "-d",
+            action="store_true",
+            help="Distribute files, unsupported in Version 0.0 !!"
         )
 
     def add_option(self):
@@ -57,7 +70,8 @@ class BatchOption(SingletonBaseClass):
         return self._args.print_help()
 
     def option_match_generator(self):
-        return (action_name for (action_name, value) in self._args.parse_args().__dict__.items() if value is True)
+        return (action_name for (action_name, value)
+                in self._args.parse_args().__dict__.items() if value is True)
 
     def add_method(self, options_name):
         _options = str(options_name)
@@ -66,6 +80,12 @@ class BatchOption(SingletonBaseClass):
             self._action_options[_options] = func
             return func
         return _register_options
+    # def add_method(self, func):
+    #    def _register_options(options_name):
+    #        _options = str(options_name)
+    #        self._action_options[_options] = func
+    #        return func
+    #    return _register_options
 
     def get_action_options(self):
         return self._action_options

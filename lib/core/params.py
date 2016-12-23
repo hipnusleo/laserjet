@@ -11,7 +11,7 @@
 """
 import sys
 from ConfigParser import ConfigParser
-from os.path import *
+from os.path import join, abspath, split, realpath, sep
 from logging import INFO, DEBUG, CRITICAL, WARN, NOTSET, getLogger
 from json import load
 
@@ -26,6 +26,8 @@ for element in path_list:
         break
     else:
         tmp.append(element)
+
+VERSION = "Version 0.0"
 
 ROOT_DIR = abspath(join(sep.join(tmp), ROOT_DIR_NAME))
 CONF_DIR = join(ROOT_DIR, 'conf')
@@ -71,9 +73,22 @@ LOG_LVL_CRITICAL = CRITICAL
 LOG_LVL_NOTSET = NOTSET
 LOG_LVL = LOG_LVL_INFO
 
-LOG_FMT = "%(asctime)s[%(levelname)s] - %(message)s"
-LOG_DAT_FMT = "%Y/%m/%d-%H:%M:%S"
+LOG_FMT_INFO = (
+    "%(asctime)s[%(levelname)s] "
+    "%(filename)s(%(lineno)d): %(message)s")
+LOG_FMT_DEBUG = (
+    "%(asctime)s[%(levelname)s] "
+    "%(filename)s(%(lineno)d)- method:[%(funcName)s]: %(message)s")
 
+LOG_FMT = LOG_FMT_INFO
+LOG_DAT_FMT = "%Y/%m/%d %H:%M:%S"
+
+
+# SCRIPT
+INSPECT_SCRIPT_NAME = "inspect.py"
+INSPECT_SCRIPT = join(SCRIPT_DIR, INSPECT_SCRIPT_NAME)
+INSPECT_DIR = abspath("/tmp/laserjet/")
+INSPECT_COLLECT_DIR = join(INSPECT_DIR, "cluster")
 
 # All sections in lserjet_conf.ini
 HOSTS_ACCOUNT_INFO = "AccountInfo"

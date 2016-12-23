@@ -12,7 +12,8 @@ from json import load
 from logging import (Formatter, _defaultFormatter, exception,
                      getLogger, FileHandler, basicConfig, StreamHandler)
 from cloghandler import ConcurrentRotatingFileHandler
-from params import LOG_CONF_FILE, LOG_LVL, LOGGER_NAME, LOG_FILE, LOG_FMT, LOG_DAT_FMT
+from params import (LOG_CONF_FILE, LOG_LVL, LOGGER_NAME,
+                    LOG_FILE, LOG_DAT_FMT, LOG_FMT)
 
 
 class LaserjetLogger(object):
@@ -36,7 +37,7 @@ class LaserjetLogger(object):
         logger.setLevel(LOG_LVL)
         logger.addHandler(log_handler)
         logger.addHandler(console_handler)
-        logger.info("A Global Logger has been initialized")
+        logger.info("Logger activated")
 
 
 def print_func(anything_str):

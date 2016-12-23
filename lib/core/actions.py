@@ -3,18 +3,20 @@
 
 """
     @Author:        yyg
-    @Create:        2016MMDD
-    @LastUpdate:    2016MMDD HH:MM:SS
+    @Create:        2016-MM-DD
+    @LastUpdate:    2016-12-DD HH:MM:SS
     @Version:       0.0
 """
 import inspect
 from logging import getLogger
 
-from paramiko import SSHClient
+from paramiko import SFTPClient, SSHClient
 
 from options import BatchOption
-from params import LOGGER_NAME, BatchConf, LASERJET_HOST
-
+from params import (INSPECT_COLLECT_DIR, INSPECT_DIR, INSPECT_SCRIPT,
+                    LASERJET_HOST, LOGGER_NAME, BatchConf)
+from utils import record_log, sftp_conn, ssh_conn
+from os.path import join
 logger = getLogger(LOGGER_NAME)
 action_options = BatchOption()
 batch_conf = BatchConf()
@@ -22,30 +24,43 @@ laserjet_host = batch_conf.get_laserjet_host()
 laserjet_host = laserjet_host.strip()
 
 
+@action_options.add_method("inspect")
+def _batch_inspect(host_info):
+    hostname = host_info["hostname"]
+    _ssh_client = ssh_conn(host_info)
+    _sftp_client = _ssh_client.open_sftp()
+    _sftp_client.mkdir(INSPECT_COLLECT_DIR)
+    _sftp_client.put(INSPECT_SCRIPT, INSPECT_DIR)
+    _stdin, _stdout, _stderr = _ssh_client.exec_command(
+        "python %s %s" % (INSPECT_SCRIPT, hostname))
+    _sftp_client.get(join(INSPECT_DIR, (hostname + "json")),
+                     INSPECT_COLLECT_DIR)
+
+
+@action_options.add_method("distribute")
+def _batch_distribute(host_info):
+    _sftp_client = sftp_conn(ssh_client[0])
+    if isinstance(_sftp_client, SFTPClient):
+        pass
+
+
 @action_options.add_method("sync")
-def _batch_sync(ssh_client, host_info):
-    if isinstance(ssh_client[0], SSHClient):
+def _batch_sync(host_info):
+    _sftp_client = sftp_conn(host_info)
+    if isinstance(_sftp_client, SFTPClient):
         hostname = host_info["hostname"]
-        _ssh_client = ssh_client[0]
-        _ssh_client.connect(**ssh_client[1])
-        _sftp_client = _ssh_client.open_sftp()
-        logger.info(
-            "############ Start syncing file @{0} ".format(
-                hostname
-            ))
+        logger.info("Start Syncing @%s " % hostname)
         for file_for_sync in batch_conf.get_batch_sync():
-            # !!! a path check must take when localpath == remotepath
-            # Since when batch sync launched, it will cover node where
-            # laserjet locates, otherwise O bytes will sync to other nodes
-            local = file_for_sync["localpath"]
-            remote = file_for_sync["remotepath"]
             try:
-                if (hostname == laserjet_host) and (local == remote):
+                local = file_for_sync["localpath"]
+                remote = file_for_sync["remotepath"]
+                skip = (hostname == laserjet_host) and (local == remote)
+                logger.info("skip = {0}".format(skip))
+                if skip:
                     logger.info("Sync task skipped on % s, since copy local \"%s\""
                                 " to local \"%s\"" %
                                 (laserjet_host, local, remote))
                     continue
-                _sftp_client.put(local, remote)
                 logger.info(
                     "Done copy from \"{0}\" to  @{2}:\"{1}".format(
                         file_for_sync["localpath"],
@@ -53,30 +68,30 @@ def _batch_sync(ssh_client, host_info):
                         hostname
                     )
                 )
+                _sftp_client.put(local, remote)
+                _sftp_client.close()
             except (KeyboardInterrupt, SystemExit):
                 raise
             except:
+                break
                 logger.exception("Batch sync encounters error")
-
         logger.info(
-            "######## Done syncing files @{0}".format(hostname))
-        _sftp_client.close()
+            "Done Syncing files @{0}".format(hostname))
         logger.debug("Close sftp_client")
     else:
         logger.error(
-            "while running method <{0}# found input {1} is not an instance of paramiko SSHClient".format(
+            "while running {0}# found input {1} is not an instance of paramiko SSHClient".format(
                 inspect.currentframe().f_code.co_name,
                 ssh_client)
         )
 
 
 @action_options.add_method("exec")
-def _batch_exec(ssh_client, host_info):
-    if isinstance(ssh_client[0], SSHClient):
-        _ssh_client = ssh_client[0]
-        _ssh_client.connect(**ssh_client[1])
+def _batch_exec(host_info):
+    _ssh_client = ssh_conn(host_info)
+    if isinstance(_ssh_client, SSHClient):
         hostname = host_info["hostname"]
-        logger.debug("Start executing commands @%s" % hostname)
+        logger.debug("Start Executing commands @%s" % hostname)
         for cmd in batch_conf.get_batch_cmds():
             try:
                 cmd_stdin, cmd_stdout, cmd_stderr = _ssh_client.exec_command(
@@ -99,35 +114,22 @@ def _batch_exec(ssh_client, host_info):
 
 
 @action_options.add_method("fetch")
-def _batch_fetch(ssh_client, host_info):
-    if isinstance(ssh_client[0], SSHClient):
+def _batch_fetch(host_info):
+    _sftp_client = sftp_conn(host_info)
+    if isinstance(_sftp_client, SFTPClient):
         hostname = host_info["hostname"]
-        _ssh_client = ssh_client[0]
-        _ssh_client.connect(*ssh_client[1])
-        _sftp_client = _ssh_client.open_sftp()
-        # !!! a path check must take when localpath == remotepath
-        # Since when batch sync launched, it will cover node where
-        # laserjet locates, otherwise O bytes will sync to other nodes
-        logger.info(
-            "############ Start fetching @{0}".format(
-                hostname
-            ))
         for file_for_fetch in batch_conf.get_batch_fetch():
             try:
-                _sftp_client.get(
-                    file_for_fetch["remotepath"],
-                    file_for_fetch["localpath"]
-                )
-                logger.info("Done fetch from \"{0}\"@{1} to \"{2}\"".format(
-                    hostname,
-                    file_for_fetch["remotepath"],
-                    file_for_fetch["localpath"]
-                ))
-            except:
+                _remote = file_for_fetch["remotepath"]
+                _local = str(file_for_fetch["localpath"] + "." + hostname)
+                _sftp_client.get(_remote, _local)
                 _sftp_client.close()
+                logger.info("Done fetch from {0} @{1} to local \"{2}\"".format(
+                    hostname, _remote, _local))
+            except:
                 logger.exception("Batch fetch encounters error")
                 raise SystemExit
-        logger.info("############ Done fetching @{0}".format(
+        logger.info("Done fetching @{0}".format(
             hostname
         ))
         _sftp_client.close()
