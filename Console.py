@@ -10,12 +10,12 @@
         #
 """
 from lib.core.terminals import MTerminal
-from lib.core.launcher import Launcher
+#from lib.core.launcher import Launcher
 
 
 def run_server():
-    server = MTerminal()
-    server.run()
+    _server = MTerminal()
+    _server.run()
 
 
 if __name__ == "__main__":

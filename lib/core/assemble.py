@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-#-*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 
 """
     @Author:        yyg
     @Create:        2016MMDD
-    @LastUpdate:    2016MMDD HH:MM:SS
+    @LastUpdate:    2016-12-15 HH:MM:SS
     @Version:       0.0
-    @Description    
-        #
 """

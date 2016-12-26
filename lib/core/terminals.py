@@ -22,6 +22,7 @@ from paramiko import AutoAddPolicy, SSHClient
 from actions import action_options, batch_conf
 from loggers import LaserjetLogger
 from params import LOGGER_NAME
+from utils import StopWatch
 
 logger = getLogger(LOGGER_NAME)
 action_options = action_options
@@ -35,33 +36,34 @@ class MTerminal(object):
     """
 
     def __init__(self):
-        # self._batch_options = BatchOption()
+        self._batch_options = None
+        self._host_queue = None
+        self._batch_conf = None
+        self.hosts = None
+        self.logger = LaserjetLogger()
+
+    def _setup(self):
         self._batch_options = action_options
         self._host_queue = Manager().JoinableQueue()
         self._batch_conf = batch_conf
         self.hosts = self._batch_conf.batch_hosts_generator()
-        self.logger = LaserjetLogger()
+        logger.info("Done MTerminal setup")
 
     def _load_hosts_queue(self):
         host_list = list()
-        host_num = 1
+        host_num = 0
         for each in self.hosts:
             self._host_queue.put_nowait(each)
-            logger.debug(
-                "Put host{0} [{1}] to host queue ".format(
-                    host_num,
-                    each["hostname"])
-            )
+            logger.debug("Put host%d [%s] to host queue" % (host_num,
+                                                            each["hostname"]))
             host_num += 1
             host_list.append(each["hostname"])
-            # self._host_queue.join()
-            logger.debug("worker_pool join")
         logger.info("Batch process on {0} hosts: \n{1}".format(
-            (host_num - 1),
-            host_list))
-        return (host_num - 1)
+            host_num, host_list))
+        return host_num
 
     def run(self):
+        self._setup()
         if not argv[1:]:
             logger.info(batch_conf.get_laserjet_host())
             self._batch_options.get_help()
@@ -71,15 +73,15 @@ class MTerminal(object):
             worker_pool = Pool()
             logger.info(
                 "Pool(%d/%d) activated" % (cpu_count(), cpu_count()))
-            _action_funcs = self._batch_options.get_actions()
             host_len = self._load_hosts_queue()
+            _action_funcs = self._batch_options.get_actions()
             continue_enable = raw_input(
                 "Are you sure to launch remote tasks"
                 " on above hosts?(press \"y\" for yes:)"
             )
             if continue_enable is 'y':
                 try:
-                    start_time = clock()
+                    _timer = StopWatch()
                     logger.info("Worker pool start working %8s" % ("###"))
                     for cpu in xrange(host_len):
                         worker_pool.apply_async(
@@ -89,9 +91,11 @@ class MTerminal(object):
                     worker_pool.close()
                     logger.debug("worker_pool closed")
                     worker_pool.join()
-                    end_time = clock()
-                    logger.info("Mission accomplished in %d seconds" %
-                                (start_time - end_time))
+                    if "inspect" in _action_funcs:
+                        pass
+                        # assemble collect info into DB
+                    logger.info("Mission accomplished in %s seconds" %
+                                (_timer.timer()))
                 except (KeyboardInterrupt, SystemExit):
                     raise
                 except TimeoutError:
@@ -107,26 +111,12 @@ class MTerminal(object):
         pass
 
 
-# def get_ssh_client(host):
-#    _ssh_client = SSHClient()
-#    logger.debug("Get host info = {0}".format(host))
-#    _ssh_client.load_system_host_keys()
-#    logger.debug("Done loading system host keys")
-#    _ssh_client.set_missing_host_key_policy(AutoAddPolicy())
-#    logger.debug("Done setting missing host key policy")
-#    return [_ssh_client, host]
-
-
 def action_dispatcher(host_queue, action_funcs):
     try:
         logger.debug("Trying to get ssh client from host queue")
         host_info = host_queue.get()
-        #_ssh_client = get_ssh_client(host_info)  # should be removed
         for action_func in action_funcs:
-            logger.info("action_func = %s" % action_func)
-        # inappropriate design here, only **host_info need to pass to each
-        # function
-        #    action_func(_ssh_client, host_info)
+            logger.debug("action_func = %s" % action_func)
             action_func(host_info)
         host_queue.task_done()
         logger.debug("process %s has done its task" % getpid())

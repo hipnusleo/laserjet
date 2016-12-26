@@ -11,9 +11,10 @@
 """
 import sys
 from ConfigParser import ConfigParser
-from os.path import join, abspath, split, realpath, sep
+from os.path import join, abspath, split, realpath, sep, isfile
 from logging import INFO, DEBUG, CRITICAL, WARN, NOTSET, getLogger
 from json import load
+from utils import iscomment
 
 # Dir Path
 # ROOT_DIR = abspath(join(split(realpath(sys.argv[0]))[0]))
@@ -86,8 +87,9 @@ LOG_DAT_FMT = "%Y/%m/%d %H:%M:%S"
 
 # SCRIPT
 INSPECT_SCRIPT_NAME = "inspect.py"
-INSPECT_SCRIPT = join(SCRIPT_DIR, INSPECT_SCRIPT_NAME)
 INSPECT_DIR = abspath("/tmp/laserjet/")
+INSPECT_SCRIPT = join(SCRIPT_DIR, INSPECT_SCRIPT_NAME)
+INSPECT_SCRIPT_REMOTE = join(INSPECT_DIR, INSPECT_SCRIPT_NAME)
 INSPECT_COLLECT_DIR = join(INSPECT_DIR, "cluster")
 
 # All sections in lserjet_conf.ini
@@ -144,7 +146,7 @@ class BatchConf(SingletonBaseClass):
         try:
             with open(self.batch_hosts_file) as cluster_hosts_conf:
                 for line in cluster_hosts_conf:
-                    if is_comment(line):
+                    if iscomment(line):
                         continue
                     else:
                         line = line.split()
@@ -183,7 +185,7 @@ class BatchConf(SingletonBaseClass):
             with open(self.batch_cmd_file) as batch_cmd_conf:
                 cmds = list()
                 for line in batch_cmd_conf:
-                    if is_comment(line):
+                    if iscomment(line):
                         continue
                     else:
                         line = line.strip()
@@ -202,7 +204,7 @@ class BatchConf(SingletonBaseClass):
             with open(self.batch_sync_file) as batch_sync_conf:
                 src_to_dst = list()
                 for line in batch_sync_conf:
-                    if is_comment(line):
+                    if iscomment(line):
                         continue
                     else:
                         line = line.split(',')
@@ -210,11 +212,14 @@ class BatchConf(SingletonBaseClass):
                             "localpath": line[0].strip(),
                             "remotepath": line[1].strip()
                         }
-                        # yield tmp
-                        src_to_dst.append(tmp)
+                        if isfile(tmp["localpath"]):
+                            src_to_dst.append(tmp)
+                        else:
+                            logger.error("%s is not file, skip" %
+                                         tmp["localpath"])
                 return src_to_dst
-        except IOError as e:
-            print(e)
+        except IOError:
+            logger.exception("%s encounters error" % (__name__))
 
     def get_batch_fetch(self):
         """ Read src & dst location from BATCH_FETCH_FILE
@@ -225,7 +230,7 @@ class BatchConf(SingletonBaseClass):
         with open(self.batch_fetch_file) as batch_fetch_conf:
             src_to_dst = list()
             for line in batch_fetch_conf:
-                if is_comment(line):
+                if iscomment(line):
                     continue
                 else:
                     line = line.split(',')
@@ -261,7 +266,6 @@ class BatchParams(object):
             self.param_file = param_file
 
     def get_account_info(self):
-        #        self._cfg.read(self.param_file)
         if self._cfg.has_section(HOSTS_ACCOUNT_INFO):
             return {
                 "username": self._cfg.get(HOSTS_ACCOUNT_INFO, 'username'),
@@ -280,55 +284,6 @@ class BatchParams(object):
 
     def get_yum_repo_addr(self):
         return self._cfg.get('YumRepository', 'yum_repo_addr')
-
-
-def is_comment(line):
-    if line.strip().startswith('#'):
-        return True
-    elif line.strip() == '':
-        return True
-    else:
-        return False
-
-
-def only_contain_addr(host_pair):
-    if isinstance(host_pair, list):
-        if len(host_pair) == 1:
-            return True
-        else:
-            return False
-    else:
-        print("{} is not a list".format(host_pair))
-
-
-def only_contain_username(host_pair):
-    if isinstance(host_pair, list):
-        if len(host_pair) == 3 and host_pair[1].strip() != '' and host_pair[2].strip() == '':
-            return True
-        else:
-            return False
-    else:
-        print("{} is not a list".format(host_pair))
-
-
-def only_contain_password(host_pair):
-    if isinstance(host_pair, list):
-        if (len(host_pair) == 3 and host_pair[1].strip() == '' and host_pair[2].strip != ''):
-            return True
-        else:
-            return False
-    else:
-        logger.error("{} is not a list".format(host_pair))
-
-
-def contain_both_username_password(host_pair):
-    if isinstance(host_pair, list):
-        if len(host_pair) == 3 and host_pair[1] != '' and host_pair[2] != '':
-            return True
-        else:
-            return False
-    else:
-        logger.error("{} is not a list".format(host_pair))
 
 
 if __name__ == '__main__':

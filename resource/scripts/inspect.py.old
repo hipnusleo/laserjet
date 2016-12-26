@@ -25,12 +25,14 @@ global HOSTNAME
 HOSTNAME = platform.node()
 parser = argparse.ArgumentParser()
 parser.add_argument('filename', help='give me name of result file')
+parser.add_argument('result_path', help='give me name of result file')
 RESULT_FNAME = parser.parse_args().filename
+RESULT_PATH = parser.parse_args().result_path
 
 
 class Probe(object):
-    def __init__(self):
 
+    def __init__(self):
         """ registered funcs """
         self.probe_funcs = dict()
         self.probe_returns = dict()
@@ -70,7 +72,7 @@ class Beamer(object):
 
     @method: 
 
-    
+
     """
 
     def __init__(self):
@@ -160,7 +162,8 @@ class Beamer(object):
             key = 'ipv4_' + str(index)
             self.network_info_dict[key] = tmp_find_inet[0]
             index += 1
-        self.network_info_dict['hostname_resolved_ip'] = socket.gethostbyname(socket.gethostname())
+        self.network_info_dict['hostname_resolved_ip'] = socket.gethostbyname(
+            socket.gethostname())
         self.network_info_dict['hostname'] = HOSTNAME
         return self.network_info_dict
 
@@ -206,8 +209,10 @@ class Beamer(object):
         for mtpoint in mtpoint_list:
             partial_key = 'mt' + str(index_i)
             self.disk_info_dict[partial_key] = mtpoint
-            self.disk_info_dict[''.join(['if_', partial_key, '_absent'])] = if_not_found(mtpoint)[mtpoint]
-            self.disk_info_dict[partial_key + '_free_cap'] = cal_disksize_fromvfs(mtpoint)['free_cap']
+            self.disk_info_dict[''.join(['if_', partial_key, '_absent'])] = if_not_found(
+                mtpoint)[mtpoint]
+            self.disk_info_dict[
+                partial_key + '_free_cap'] = cal_disksize_fromvfs(mtpoint)['free_cap']
             index_i += 1
         self.disk_info_dict['disk_number'] = len(mtpoint_list)
         self.disk_info_dict['hostname'] = HOSTNAME
@@ -233,7 +238,8 @@ class Beamer(object):
 
     @probe.register('CLOCK')
     def render_clock_info(self):
-        self.clock_info_dict['time'] = time.strftime("%Z-%Y-%m-%d %H:%M:%S", time.localtime())
+        self.clock_info_dict['time'] = time.strftime(
+            "%Z-%Y-%m-%d %H:%M:%S", time.localtime())
         self.clock_info_dict['hostname'] = HOSTNAME
         return self.clock_info_dict
 
@@ -315,7 +321,8 @@ def cal_disksize_fromvfs(path):
         }
         return disk_cap
     except Exception, e:
-        print('Method[%s] encouters {%s}' % (sys._getframe().f_code.co_name, e))
+        print('Method[%s] encouters {%s}' %
+              (sys._getframe().f_code.co_name, e))
 
 
 def try_connect(ip):

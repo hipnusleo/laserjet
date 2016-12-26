@@ -10,17 +10,19 @@
 from time import clock
 
 from paramiko import AutoAddPolicy, SFTPClient, SSHClient, Transport
-from functools import wraps
+from os.path import abspath, split, sep
 
 """Summary of module 'utils' here.
 
-__all__ = {
     "class": [StopWatch, ],
     "class_decorator": []
     "method": [ssh_conn, sftp_conn],
-    "method_decorator": [stopwatch, ]
-}
+    "method_decorator": [stopwatch, ]"
 """
+
+__version__ = "0.0"
+__all__ = ["StopWatch", "ssh_conn", "sftp_conn", "iscomment", "record_log"]
+__author__ = "yyg"
 
 
 class StopWatch(object):
@@ -70,12 +72,16 @@ def sftp_conn(host_info):
     return SFTPClient.from_transport(trans)
 
 
+def iscomment(line):
+    # verify if it is a comment line, used in loading conf file
+    if line.strip().startswith('#'):
+        return True
+    elif line.strip() == '':
+        return True
+    else:
+        return False
+
 # method decorator
-from logging import StreamHandler, getLogger, INFO
-loggers = getLogger()
-h = StreamHandler()
-h.setLevel(INFO)
-loggers.addHandler(h)
 
 
 def record_log(logger):
@@ -93,10 +99,6 @@ def record_log(logger):
         return _wrap
     return _record
 
-
-@record_log(loggers)
-def test():
-    raise Exception
 
 if __name__ == "__main__":
     test()
