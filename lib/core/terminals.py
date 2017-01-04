@@ -22,6 +22,7 @@ from paramiko import AutoAddPolicy, SSHClient
 from actions import action_options, batch_conf
 from loggers import LaserjetLogger
 from params import LOGGER_NAME
+from assemble import Assembler
 from utils import StopWatch
 
 logger = getLogger(LOGGER_NAME)
@@ -75,6 +76,7 @@ class MTerminal(object):
                 "Pool(%d/%d) activated" % (cpu_count(), cpu_count()))
             host_len = self._load_hosts_queue()
             _action_funcs = self._batch_options.get_actions()
+            _action_names = self._batch_options.get_action_name()
             continue_enable = raw_input(
                 "Are you sure to launch remote tasks"
                 " on above hosts?(press \"y\" for yes:)"
@@ -91,9 +93,10 @@ class MTerminal(object):
                     worker_pool.close()
                     logger.debug("worker_pool closed")
                     worker_pool.join()
-                    if "inspect" in _action_funcs:
-                        pass
-                        # assemble collect info into DB
+                    if "inspect" in _action_names:
+                        # do assemble
+                        assembler = Assembler(batch_conf.get_batch_params())
+                        assembler.start()
                     logger.info("Mission accomplished in %s seconds" %
                                 (_timer.timer()))
                 except (KeyboardInterrupt, SystemExit):

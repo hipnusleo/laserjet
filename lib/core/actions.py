@@ -36,21 +36,21 @@ def _batch_inspect(host_info):
         _stdin, _stdout, _stderr = _ssh_client.exec_command(_mkdir)
         logger.info("Waiting for result zzz zzz ")
         sleep(3)
-        if _stdout.readlines():
-            logger.info("run '%s' : %s" % (_mkdir, _stdout.readlines()))
-        if _stderr.readlines():
-            logger.error("run '%s' : %s" % (_mkdir, _stderr.readlines()))
+        logger.info("run '%s' : %s" % (_mkdir, _stdout.readlines()))
+        logger.error("run '%s' : %s" % (_mkdir, _stderr.readlines()))
         logger.info("Done mkdir '%s'" % _mkdir)
         # /tmp/laserjet/inspect.py
         _sftp_client.put(INSPECT_SCRIPT, INSPECT_SCRIPT_REMOTE)
         _run_script = "python %s %s %s" % (
             INSPECT_SCRIPT_REMOTE, hostname, INSPECT_DIR)
         _stdin, _stdout, _stderr = _ssh_client.exec_command(_run_script)
-        if _stdout.readlines():
-            logger.info("%s : %s" % (_run_script, _stdout.readlines()))
-        if _stderr.readlines():
-            logger.error("%s : %s" % (_run_script, _stderr.readlines()))
-        logger.info("Done running '%s'" % _run_script)
+        logger.info("run script '%s'" % (_run_script))
+        for each in _stdout.readlines():
+            logger.info("%s" % each)
+        for each in _stderr.readlines():
+            if each:
+                logger.error("%s" % (each))
+        logger.info("Done running inspect.py: '%s'" % _run_script)
         _remote_report = join(INSPECT_DIR, (hostname + ".json"))
         _local_report = join(INSPECT_COLLECT_DIR, (hostname + ".json"))
         _sftp_client.get(_remote_report, _local_report)
@@ -109,10 +109,10 @@ def _batch_exec(host_info):
                 cmd_stdin, cmd_stdout, cmd_stderr = _ssh_client.exec_command(
                     cmd)
                 logger.debug("Done executing \"%s\" on @ %s" % (cmd, hostname))
-                if cmd_stdout.readlines():
+                if len(cmd_stdout.readlines()) > 0:
                     logger.info("command result is: %s" % (
                         cmd_stdout.readlines()))
-                if cmd_stderr.readlines():
+                if len(cmd_stderr.readlines()) > 0:
                     logger.error("command throws : %s" %
                                  (cmd_stderr.readlines()))
             except:

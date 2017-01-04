@@ -7,13 +7,14 @@
     @Version:       0.0
 """
 from os.path import abspath, sep, join, exists
-from os import mkdir
+from os import mkdir, statvfs
 from sys import argv, stdout
 from platform import release, linux_distribution
 from subprocess import Popen, PIPE
 from json import dump, dumps
 from collections import OrderedDict
 from platform import node
+from time import localtime, strftime
 
 """Summary of script 'inspect.py'.
 
@@ -85,7 +86,7 @@ class Inspector(object):
 
     def _check_os(self):
         """
-        :return 
+        :return
             self._report["OS"] = "Centos-6.5"
         """
         self._report["OS"] = "-".join(linux_distribution())
@@ -131,6 +132,7 @@ class Inspector(object):
                         self._report["Cores"] = line.split(":")[1].strip()
                     if "siblings" in line:
                         self._report["Siblings"] = line.split(":")[1].strip()
+        self._report["Processor"] = str(self._report["Processor"])
         if self._report["Siblings"] == self._report["Cores"]:
             self._report["HyperThreadingEnable"] = "on"
         else:
@@ -157,7 +159,7 @@ class Inspector(object):
             self._report["MountPoint_1_IO"] = "200MB/s"
         """
         pass
-        # for each disk mount, test its I/O
+        # for each disk mounted, test its I/O
 
     def _check_ip(self):
         """
@@ -173,8 +175,9 @@ class Inspector(object):
             if "inet" in line and "inet6" not in line:
                 line = line.split()
                 for col in line:
-                    if "/" in col:
+                    if "/" in col and "127" not in col:
                         self._report["IP_%d" % _index] = col.split("/")[0]
+                        _index += 1
 
     def _check_connectivity(self):
         """
@@ -219,20 +222,76 @@ class Inspector(object):
         _cmd = "service iptables status"
         _iptables_status = Popen(_cmd, shell=True, stdout=PIPE)
         for line in _iptables_status.stdout.readlines():
-            if "running" not in line:
+            if "Firewall is not running" in line:
                 self._report["IptableStatus"] = "off"
             else:
                 self._report["IptableStatus"] = "on"
 
     def _check_selinux(self):
         """
-        : return 
+        : return
             self._report["SelinuxStatus"] = "disabled"
         """
-        _cmd_selinux = "sestatus"
+        _cmd_selinux = "getenforce"
         _result = Popen(_cmd_selinux, shell=True, stdout=PIPE)
+        self._report["SelinuxStatus"] = _result.stdout.readlines()[0].strip()
+
+    def _check_desktop(self):
+        """
+        : return
+            self._report["DesktopStatus"] = "off"
+        """
+        with open("/etc/inittab") as init:
+            if (ToolBox.isnotcomment(line) and "3" in line for line in init):
+                self._report["DesktopStatus"] = "off"
+            else:
+                self._report["DesktopStatus"] = "on"
+
+    def _check_openssh(self):
+        """
+        : return
+            self._report["openssh"] = "openssh-clients-5.3p1-118.1.el6_8.x86_64"
+            openssh-clients-5.3p1-118.1.el6_8.x86_64
+            openssh-server-5.3p1-118.1.el6_8.x86_64
+            openssh-5.3p1-118.1.el6_8.x86_64
+        """
+        pass
+
+    def _check_jdk(self):
+        """
+        :return
+            self._report["jdk"] = "java version "1.7.0_67"
+            java version "1.7.0_67"
+            Java(TM) SE Runtime Environment (build 1.7.0_67-b01)
+            Java HotSpot(TM) 64-Bit Server VM (build 24.65-b04, mixed mode)
+        """
+        _jdk = "java -version"
+        _result = Popen(_jdk, shell=True, stderr=PIPE, stdout=PIPE)
+        self._report["jdk"] = "None"
         for line in _result.stdout.readlines():
-            self._report["SelinuxStatus"] = line.split(":")[1].strip()
+            print line
+            if "java version" in line:
+                self._report["jdk"] = line.split()[2].strip("\"")
+
+    def _check_clock(self):
+        """
+        : return
+            self._report["Time"] = "2016/12/5 20:19:22"
+        """
+        self._report["Time"] = strftime("%Z-%Y-%m-%d %H:%M:%S", localtime())
+
+    def _check_ulimit(self):
+        """
+        : return
+            self._report[""]
+        """
+        pass
+
+    def _check_hugetable(self):
+        """
+        : return
+            self._report["hugetable"] = "off"
+        """
 
     def _collect(self):
         self._check_kernel()
@@ -248,6 +307,11 @@ class Inspector(object):
         self._check_hostname()
         self._check_iptables()
         self._check_selinux()
+        self._check_desktop()
+        # self._check_openssh()
+        self._check_jdk()
+        self._check_clock()
+        self._check_ulimit()
 
     def run(self, path):
         self._collect()
@@ -255,10 +319,9 @@ class Inspector(object):
         if exists(path) is False:
             mkdir(path)
         _report_path = join(path, (self._hostname + ".json"))
-        _report_file = open(_report_path, "w")
-        dump(self._report, _report_file, encoding='utf-8')
-        print dumps(self._report, indent=1)
-        _report_file.close()
+        with open(_report_path, "w") as _report_file:
+            dump(self._report, _report_file, encoding='utf-8')
+            print dumps(self._report, sort_keys=True, indent=1)
 
 if __name__ == "__main__":
     inspector = Inspector(argv[1])

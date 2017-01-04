@@ -11,6 +11,7 @@ from time import clock
 
 from paramiko import AutoAddPolicy, SFTPClient, SSHClient, Transport
 from os.path import abspath, split, sep
+from json import load
 
 """Summary of module 'utils' here.
 
@@ -21,7 +22,8 @@ from os.path import abspath, split, sep
 """
 
 __version__ = "0.0"
-__all__ = ["StopWatch", "ssh_conn", "sftp_conn", "iscomment", "record_log"]
+__all__ = ["StopWatch", "ssh_conn", "sftp_conn",
+           "iscomment", "json2dict", "record_log"]
 __author__ = "yyg"
 
 
@@ -81,7 +83,26 @@ def iscomment(line):
     else:
         return False
 
-# method decorator
+
+def json_deserialize(json_content):
+    """
+    Load content from a **.json file then encode("utf-8") 
+    """
+    return _json_deserialize(load(json_content, object_hook=_json_deserialize))
+
+
+def _json_deserialize(data):
+    if isinstance(data, unicode):
+        return data.encode("utf-8")
+    elif isinstance(data, list):
+        return (_json_deserialize(element) for element in data)
+    elif isinstance(data, dict):
+        return dict((_json_deserialize(key), _json_deserialize(value))
+                    for key, value in data.iteritems())
+    else:
+        return data
+
+        # method decorator
 
 
 def record_log(logger):

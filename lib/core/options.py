@@ -104,6 +104,12 @@ class BatchOption(SingletonBaseClass):
             tmp.append(self.get_action(action_name))
         return tmp
 
+    def get_action_name(self):
+        tmp = list()
+        for action_name in self.option_match_generator():
+            tmp.append(action_name)
+        return tmp
+
 if __name__ == "__main__":
     test = BatchOption()
     for action_name in test.option_match_generator():

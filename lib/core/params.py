@@ -92,9 +92,13 @@ INSPECT_SCRIPT = join(SCRIPT_DIR, INSPECT_SCRIPT_NAME)
 INSPECT_SCRIPT_REMOTE = join(INSPECT_DIR, INSPECT_SCRIPT_NAME)
 INSPECT_COLLECT_DIR = join(INSPECT_DIR, "cluster")
 
-# All sections in lserjet_conf.ini
+# All sections in laserjet_conf.ini
 HOSTS_ACCOUNT_INFO = "AccountInfo"
 LASERJET_HOST = "LaserjetHost"
+DATABASE = "DataBase"
+
+# DB: sqlite db location
+SQLITE_DB_DIR = join(INSPECT_DIR, "db")
 
 # Method & Class:
 logger = getLogger(LOGGER_NAME)
@@ -117,6 +121,9 @@ class BatchConf(SingletonBaseClass):
         self.batch_fetch_file = BATCH_FETCH_FILE_PATH
         self.batch_sync_file = BATCH_SYNC_FILE_PATH
         self._batch_param = BatchParams()
+
+    def get_batch_params(self):
+        return self._batch_param
 
     def set_batch_hosts_file(self, file_path):
         if isfile(file_path):
@@ -283,7 +290,10 @@ class BatchParams(object):
                 "%s does not contain session [LaserjetHost]" % self.param_file)
 
     def get_yum_repo_addr(self):
-        return self._cfg.get('YumRepository', 'yum_repo_addr')
+        return self._cfg.get("YumRepository", "yum_repo_addr")
+
+    def get_db(self):
+        return self._cfg.get("DataBase", "db_type").lower().strip()
 
 
 if __name__ == '__main__':
