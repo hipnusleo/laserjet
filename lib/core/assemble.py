@@ -7,13 +7,17 @@
     @LastUpdate:    2016-12-15 HH:MM:SS
     @Version:       0.0
 """
+import sqlite3
+from ConfigParser import ConfigParser
 from json import load
 from logging import getLogger
 from os import mkdir, remove, walk
 from os.path import abspath, exists, isdir, isfile, join
-import sqlite3
 from shutil import rmtree
-from params import INSPECT_COLLECT_DIR, LOGGER_NAME, SQLITE_DB_DIR
+import MySQLdb
+
+from params import (BATCH_PARAMS_FILE_PATH, INSPECT_COLLECT_DIR, LOGGER_NAME,
+                    SQLITE_DB_DIR)
 from utils import json_deserialize
 
 """Summary of Module 'assemble'
@@ -30,6 +34,27 @@ logger = getLogger(LOGGER_NAME)
 class WrongDataBaseException(Exception):
     """Raise when neither sqlite nor mysql is chosen."""
     pass
+
+
+class FailConnMysqlException(Exception):
+    """Raise when fail to connect to a mysql db"""
+    pass
+
+
+def load_db_cfg():
+    """Load configuration from laserjet_conf.ini"""
+    cfg = ConfigParser()
+    cfg.read(BATCH_PARAMS_FILE_PATH)
+    if cfg.has_section("Mysql"):
+        return {
+            "host": cfg.get("Mysql", "host"),
+            "port": cfg.get("Mysql", "port"),
+            "username": cfg.get("Mysql", "username"),
+            "password": cfg.get("Mysql", "password"),
+            "database": cfg.get("Mysql", "database"),
+            "table": cfg.get("Mysql", "table")
+
+        }
 
 
 class Assembler(object):
@@ -63,8 +88,26 @@ class Assembler(object):
             for sql in (self._sqlite_sql_insert_rows()):
                 self._conn.execute(sql)
             self._conn.commit()
+            self._conn.close()
         elif self._db_type == "mysql":
-            pass
+            cfg = load_db_cfg()
+            self._table = cfg["table"]
+            self._conn = MySQLdb.Connect(
+                cfg["host"],
+                cfg["username"],
+                cfg["password"],
+                cfg["database"]
+            )
+            try:
+                cursor = self._conn.cursor()
+                cursor.execute("DROP TABLE IF EXISTS %s" % cfg["table"])
+                cursor.execute(self._mysql_sql_create_table())
+                for sql in self._mysql_sql_insert_rows():
+                    cursor.execute(sql)
+                self._conn.commit()
+                self._conn.close()
+            except:
+                logger.exception("Fail in manipulation of mysql")
         else:
             logger.error("db type is: %s" % self._db_type)
             raise WrongDataBaseException
@@ -95,15 +138,42 @@ class Assembler(object):
         logger.info("sql : %s" % sql)
         return sql
 
+    def _mysql_sql_create_table(self):
+        self._cols = list(self._cols)
+        head = "CREATE TABLE %s " % self._table
+        col_style = " VARCHAR(16)"
+        for col in self._cols:
+            index = self._cols.index(col)
+            self._cols[index] = "".join(["", col, col_style])
+        sql = head + "(" + ",".join(self._cols) + ")"
+        logger.info("sql : %s" % sql)
+        return sql
+
     def _sqlite_sql_insert_rows(self):
         sqls = list()
-        cols = list()
-        rows = list()
-        pairs = {
-            "cols": cols,
-            "rows": rows
-        }
         for each in self._info:
+            pairs = {
+                "cols": cols,
+                "rows": rows
+            }
+            for key, value in each.iteritems():
+                pairs["cols"].append(key)
+                pairs["rows"].append("'%s'" % value)
+            cols = ",".join(pairs["cols"])
+            rows = ",".join(pairs["rows"])
+            sql = "INSERT INTO %s (%s) VALUES (%s);" % (
+                self._table, cols, rows)
+            logger.info("INSERT SQL : \n %s" % sql)
+            sqls.append(sql)
+        return sqls
+
+    def _mysql_sql_insert_rows(self):
+        sqls = list()
+        for each in self._info:
+            pairs = {
+                "cols": [],
+                "rows": []
+            }
             for key, value in each.iteritems():
                 pairs["cols"].append(key)
                 pairs["rows"].append("'%s'" % value)
