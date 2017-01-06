@@ -85,5 +85,6 @@
     "python.linting.pep8Path": "C:\\Python27\\Scripts\\pep8.exe",
     "python.formatting.autopep8Path": "C:\\Python27\\Scripts\\autopep8.exe",
     "beautify.onSave": ["js", "html", "css"],
-    "terminal.integrated.fontSize": 18
+    "terminal.integrated.fontSize": 18,
+    "extensions.autoUpdate": true
 }

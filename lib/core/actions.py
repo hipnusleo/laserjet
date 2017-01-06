@@ -73,16 +73,15 @@ def _batch_sync(host_info):
             try:
                 _local = file_for_sync["localpath"]
                 _remote = file_for_sync["remotepath"]
-                skip = (hostname == laserjet_host) and (local == remote)
+                skip = (hostname == laserjet_host) and (_local == _remote)
                 logger.info("skip = {0}".format(skip))
                 if skip:
                     logger.info("Sync task skipped on %s" % hostname)
                     continue
+                _sftp_client.put(_local, _remote)
                 logger.info(
                     "Done copy from \"%s\" to  @%s:%s" % (
                         _local, hostname, _remote))
-                _sftp_client.put(_local, _remote)
-                _sftp_client.close()
                 logger.info("sftp conn closed")
             except (KeyboardInterrupt, SystemExit):
                 raise
@@ -90,6 +89,7 @@ def _batch_sync(host_info):
                 logger.exception("Batch sync encounters error")
         logger.info(
             "Done Syncing @%s" % (hostname))
+        _sftp_client.close()
     else:
         logger.error(
             "while running {0}# found input {1} is not an instance of paramiko SSHClient".format(
@@ -143,15 +143,13 @@ def _batch_fetch(host_info):
                 _sftp_client.get(_remote, _local)
                 logger.info("Done fetch from {0} @{1} to local \"{2}\"".format(
                     hostname, _remote, _local))
-                _sftp_client.close()
             except (KeyboardInterrupt, SystemExit):
                 raise
             except:
                 break
                 logger.exception("Batch fetch encounters error")
-        logger.info("Done fetching @{0}".format(
-            hostname
-        ))
+        logger.info("Done fetching @%s" % hostname)
+        _sftp_client.close()
         logger.info("Close sftp client")
     else:
         logger.error(

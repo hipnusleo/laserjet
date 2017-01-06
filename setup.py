@@ -3,9 +3,8 @@
 
 """
     @Author:        yyg
-    @Create:        2016MMDD
-    @LastUpdate:    2016MMDD HH:MM:SS
+    @Create:        2017MMDD
+    @LastUpdate:    2017MMDD HH:MM:SS
     @Version:       0.0
-    @Description    
-        #
 """
+from
