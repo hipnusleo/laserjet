@@ -6,7 +6,6 @@
     @Create:        2016MMDD
     @LastUpdate:    2016-12-15 HH:MM:SS
     @Version:       0.0
-        #
 """
 from json import load
 from logging import (Formatter, _defaultFormatter, exception,

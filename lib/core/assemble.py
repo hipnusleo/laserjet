@@ -14,7 +14,6 @@ from logging import getLogger
 from os import mkdir, remove, walk
 from os.path import abspath, exists, isdir, isfile, join
 from shutil import rmtree
-import MySQLdb
 
 from params import (BATCH_PARAMS_FILE_PATH, INSPECT_COLLECT_DIR, LOGGER_NAME,
                     SQLITE_DB_DIR)
@@ -90,6 +89,7 @@ class Assembler(object):
             self._conn.commit()
             self._conn.close()
         elif self._db_type == "mysql":
+            import MySQLdb
             cfg = load_db_cfg()
             self._table = cfg["table"]
             self._conn = MySQLdb.Connect(
@@ -141,7 +141,7 @@ class Assembler(object):
     def _mysql_sql_create_table(self):
         self._cols = list(self._cols)
         head = "CREATE TABLE %s " % self._table
-        col_style = " VARCHAR(16)"
+        col_style = " VARCHAR(20)"
         for col in self._cols:
             index = self._cols.index(col)
             self._cols[index] = "".join(["", col, col_style])
@@ -153,8 +153,8 @@ class Assembler(object):
         sqls = list()
         for each in self._info:
             pairs = {
-                "cols": cols,
-                "rows": rows
+                "cols": [],
+                "rows": []
             }
             for key, value in each.iteritems():
                 pairs["cols"].append(key)

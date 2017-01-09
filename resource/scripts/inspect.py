@@ -15,6 +15,7 @@ from json import dump, dumps
 from collections import OrderedDict
 from platform import node
 from time import localtime, strftime
+from re import compile
 
 """Summary of script 'inspect.py'.
 
@@ -250,12 +251,18 @@ class Inspector(object):
     def _check_openssh(self):
         """
         : return
-            self._report["openssh"] = "openssh-clients-5.3p1-118.1.el6_8.x86_64"
+            self._report[
+                "openssh"] = "openssh-clients-5.3p1-118.1.el6_8.x86_64"
             openssh-clients-5.3p1-118.1.el6_8.x86_64
             openssh-server-5.3p1-118.1.el6_8.x86_64
             openssh-5.3p1-118.1.el6_8.x86_64
         """
-        pass
+        cmd = "rpm -qa|grep openssh"
+        pattern = compile(r"openssh-\d.*")
+        _result = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        for line in _result.stdout.readlines():
+            if pattern.match(line):
+                self._report["openssh"] = line.strip("\n")
 
     def _check_jdk(self):
         """
@@ -269,7 +276,6 @@ class Inspector(object):
         _result = Popen(_jdk, shell=True, stderr=PIPE, stdout=PIPE)
         self._report["jdk"] = "None"
         for line in _result.stdout.readlines():
-            print line
             if "java version" in line:
                 self._report["jdk"] = line.split()[2].strip("\"")
 
@@ -280,18 +286,30 @@ class Inspector(object):
         """
         self._report["Time"] = strftime("%Z-%Y-%m-%d %H:%M:%S", localtime())
 
-    def _check_ulimit(self):
+    def _check_openfile(self):
         """
         : return
-            self._report[""]
+            self._report["openfile"] = 65536
         """
-        pass
+        cmd = "ulimit -n"
+        _result = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        self._report["openfile"] = _result.stdout.readlines()[0].strip("\n")
+
+    def _check_nproc(self):
+        """
+        :return
+            self._report["nproc"] = 1024
+        """
+        cmd = "ulimit -u"
+        _result = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        self._report["nproc"] = _result.stdout.readlines()[0].strip("\n")
 
     def _check_hugetable(self):
         """
         : return
             self._report["hugetable"] = "off"
         """
+        pass
 
     def _collect(self):
         self._check_kernel()
@@ -308,10 +326,12 @@ class Inspector(object):
         self._check_iptables()
         self._check_selinux()
         self._check_desktop()
-        # self._check_openssh()
+        self._check_openssh()
         self._check_jdk()
         self._check_clock()
-        self._check_ulimit()
+        self._check_openfile()
+        self._check_nproc()
+        # self._check_hugetable()
 
     def run(self, path):
         self._collect()

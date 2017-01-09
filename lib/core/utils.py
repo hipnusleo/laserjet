@@ -2,10 +2,10 @@
 #-*- coding: utf-8 -*-
 
 """
-    @Author:        yyg
-    @Create:        2016MMDD
-    @LastUpdate:    2016MMDD HH: MM: SS
-    @Version:       0.0
+Author:        yyg
+Create:        2016MMDD
+LastUpdate:    2016MMDD HH: MM: SS
+Version:       0.0
 """
 from time import clock
 
@@ -57,8 +57,9 @@ class StopWatch(object):
             map(int, (self._hour_hand, self._minute_hand, self._second_hand))
         )
 
-
 # methods
+
+
 def ssh_conn(host_info):
     _ssh_client = SSHClient()
     _ssh_client.load_system_host_keys()
@@ -102,7 +103,20 @@ def _json_deserialize(data):
     else:
         return data
 
-        # method decorator
+
+def unicode_list_normalize(value):
+    if isinstance(value, list):
+        tmp = list()
+        for element in value:
+            if isinstance(element, unicode):
+                tmp.append(element.encode("utf-8"))
+            else:
+                tmp.append(element)
+        return ''.join(tmp)
+    else:
+        return "This is not a list"
+
+# method decorator
 
 
 def record_log(logger):
@@ -115,11 +129,11 @@ def record_log(logger):
                 logger.debug("Method %s accomplished in %s" %
                              (func_name, _start.timer()))
             except:
-                logger.exception("Method %s encountered an error" % func_name)
+                logger.exception(
+                    "Method %s encountered an error" % func_name)
                 raise SystemExit
         return _wrap
     return _record
-
 
 if __name__ == "__main__":
     test()
