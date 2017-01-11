@@ -21,9 +21,9 @@ Read the documentation below.
 
 ### Quick Start
 1. setup
-    - `tar zxvf laserjet.tar.gz && cd laserjet`
-    - `python setup.py`
-    - `python Console.py -h`
+    - `python setup.py install`
+    - If you want to use mysql for inspection use `python setup.py install + mysql`
+    - Once setup process accomplished use `python Console.py -h` to see if all modules have been installed 
     - conf/laserjet_conf.ini
         1. Edit "username" and "password" in section 'AccountInfo'.
         2. Edit "host" in section 'LaserjetHost', be aware of its format which completely depends on what was putted in 'conf/hosts_batch.conf'. Once you use actual ip address instead of a hostname in 'conf/hosts_batch.conf',making sure you did this to 'host' at the mean time.
