@@ -1,22 +1,37 @@
-## Laserjet 0.0 Beta
+## Laserjet-Beta-0.0
 -----
 Laserjet is a radically simple batch automation tool. It handles file-syncing, file-fetching, shell-command-parallel-execution, multi-server inspection.
 
 Read the documentation below.
 
 ### Design Principals
-1. Have a simple setup and process and minimal using curve;
+1. Have a simple setup process and minimal using curve;
 2. Manage Machine very quickly and in parallel;
 
 ### Install Requests
-- python
-    1. ConcurrentLogHandler(0.9.1);
-    2. paramiko(2.1.0)
-    3. argparse(1.4.0);
-    4. Mysql-python(1.2.5)
+- pypi
+    - argparse
+    - ConcurrenLogHandler
+    - paramiko
+        - cryptography
+            - cffi
+                - pycparser
+            - idna
+            - six
+            - enum34
+            - ipaddress
+        - pyasn1
+    - Mysql-python (optional)
 
 - rpm
-    1. mysql-devel
+    - python
+    - python-devel
+    - python-setuptools
+    - python-setuptools-devel
+    - gcc
+    - mysql-devel
+    - libffi-devel
+    - openssl-devel
 
 
 ### Quick Start

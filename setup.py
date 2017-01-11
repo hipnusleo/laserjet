@@ -5,17 +5,16 @@
 - pypi
     - argparse
     - ConcurrenLogHandler
-    - Mysql-python
     - paramiko
         - cryptography
             - cffi
                 - pycparser
             - idna
             - six
-            - setuptools
             - enum34
             - ipaddress
         - pyasn1
+    - Mysql-python (optional)
 
 - rpm
     - python
