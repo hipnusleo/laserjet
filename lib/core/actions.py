@@ -28,8 +28,8 @@ laserjet_host = laserjet_host.strip()
 
 @action_options.add_method("inspect")
 def _batch_inspect(host_info):
+    hostname = host_info["hostname"]
     try:
-        hostname = host_info["hostname"]
         _ssh_client = ssh_conn(host_info)
         _sftp_client = _ssh_client.open_sftp()
         _mkdir = "mkdir -p %s" % INSPECT_COLLECT_DIR  # /tmp/laserjet/cluster
@@ -62,14 +62,14 @@ def _batch_inspect(host_info):
         raise
 
     except:
-        logger.exception("Failed in 'inspect': ")
+        logger.exception("Inspect failed @%s:\n" % hostname)
 
 
 @action_options.add_method("sync")
 def _batch_sync(host_info):
+    hostname = host_info["hostname"]
     try:
         _sftp_client = sftp_conn(host_info)
-        hostname = host_info["hostname"]
         for file_for_sync in batch_conf.get_batch_sync():
             logger.info("Syncing @%s " % hostname)
             _local = file_for_sync["localpath"]
@@ -87,15 +87,15 @@ def _batch_sync(host_info):
         logger.info("sftp conn closed")
     except (KeyboardInterrupt, SystemExit):
         raise
-    except Exception as e:
-        logger.exception("Sync failed since  \n%s" % e)
+    except:
+        logger.exception("Sync failed @%s:\n" % hostname)
 
 
 @action_options.add_method("exec")
 def _batch_exec(host_info):
+    hostname = host_info["hostname"]
     try:
         _ssh_client = ssh_conn(host_info)
-        hostname = host_info["hostname"]
         logger.debug("Start Executing commands @%s" % hostname)
         for cmd in batch_conf.get_batch_cmds():
             cmd_stdin, cmd_stdout, cmd_stderr = _ssh_client.exec_command(
@@ -107,21 +107,21 @@ def _batch_exec(host_info):
                 logger.info("Command result@%s is :\n%s" %
                             (hostname, cmd_stdout))
             if len(cmd_stderr):
-                logger.error("Failed in executing %s" % cmd)
-                logger.error("%s: \n%s" % (hostname, cmd_stdout))
+                logger.error("Failed in '%s'@%s:\n%s" %
+                             (cmd, hostname, cmd_stderr))
         _ssh_client.close()
         logger.info("Done executing commands @%s" % hostname)
     except (KeyboardInterrupt, SystemExit):
         raise
-    except Exception as e:
-        logger.exception("Exec failed since \n%s" % e)
+    except:
+        logger.exception("Exec failed @%s:\n" % hostname)
 
 
 @action_options.add_method("fetch")
 def _batch_fetch(host_info):
+    hostname = host_info["hostname"]
     try:
         _sftp_client = sftp_conn(host_info)
-        hostname = host_info["hostname"]
         for file_for_fetch in batch_conf.get_batch_fetch():
             _remote = file_for_fetch["remotepath"]
             logger.debug("_remote = %s" % _remote)
@@ -136,5 +136,5 @@ def _batch_fetch(host_info):
         logger.debug("Close sftp client")
     except (KeyboardInterrupt, SystemExit):
         raise
-    except Exception as e:
-        logger.exception("Fetch failed since \n%s" % e)
+    except:
+        logger.exception("Fetch failed @%s:\n" % hostname)

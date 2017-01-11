@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 
-"""
-    @Author:        yyg
-    @Create:        2016MMDD
-    @LastUpdate:    2016MMDD HH:MM:SS
-    @Version:       0.1
-"""
-
 from terminals import MTerminal
 from sys import argv
 
@@ -23,8 +16,8 @@ class Launcher launches 'Batch' task or 'Play' task depends on options.
 """
 
 __version__ = "0.1"
-__all__ = ["", ""]
 __author__ = "yyg"
+__all__ = []
 
 # Exceptions
 

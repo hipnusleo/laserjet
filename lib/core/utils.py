@@ -12,6 +12,7 @@ from time import clock
 from paramiko import AutoAddPolicy, SFTPClient, SSHClient, Transport
 from os.path import abspath, split, sep
 from json import load
+from subprocess import Popen, PIPE
 
 """Summary of module 'utils' here.
 
@@ -87,7 +88,7 @@ def iscomment(line):
 
 def json_deserialize(json_content):
     """
-    Load content from a **.json file then encode("utf-8") 
+    Load content from a **.json file then encode("utf-8")
     """
     return _json_deserialize(load(json_content, object_hook=_json_deserialize))
 
@@ -116,9 +117,16 @@ def unicode_list_normalize(value):
     else:
         return "This is not a list"
 
+
+class ShellCLI(object):
+
+    def __init__(self, cmd):
+        self._result = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        self._stdout = unicode_list_normalize(self._result.stdout.readlines())
+        self._stderr = unicode_list_normalize(self._result.stderr.readlines())
+
+
 # method decorator
-
-
 def record_log(logger):
     def _record(fn):
         def _wrap():

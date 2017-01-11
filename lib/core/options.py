@@ -48,7 +48,7 @@ class BatchOption(SingletonBaseClass):
             "-inspect",
             "-i",
             action="store_true",
-            help="Inspect servers, unsupported in Version 0.0 !!"
+            help="Inspect remote servers."
         )
         self._args.add_argument(
             "-distribute",
@@ -80,12 +80,6 @@ class BatchOption(SingletonBaseClass):
             self._action_options[_options] = func
             return func
         return _register_options
-    # def add_method(self, func):
-    #    def _register_options(options_name):
-    #        _options = str(options_name)
-    #        self._action_options[_options] = func
-    #        return func
-    #    return _register_options
 
     def get_action_options(self):
         return self._action_options
@@ -93,10 +87,6 @@ class BatchOption(SingletonBaseClass):
     def get_action(self, action_name):
         return self._action_options[action_name]
 
-#    def get_actions(self):
-#        return (
-#            self.get_action(action_name) for action_name in self.option_match_generator()
-#            )
     def get_actions(self):
         tmp = list()
         for action_name in self.option_match_generator():
