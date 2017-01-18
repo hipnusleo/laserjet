@@ -61,6 +61,7 @@ TARBALL = [
     "pycparser-2.17",
     "argparse-1.4.0",
     "cffi-1.9.1",
+    "ordereddict-1.1",
     "enum34-1.1.6",
     "idna-2.2",
     "ipaddress-1.0.17",
