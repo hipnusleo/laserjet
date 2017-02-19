@@ -75,74 +75,75 @@ class ToolBox(object):
 class Inspector(object):
 
     def __init__(self, hostname):
-        self._report = OrderedDict()
+        self.__report = OrderedDict()
         self._hostname = hostname
 
     def _check_kernel(self):
         """
         :return
-            self._report["KernelVersion"] = "2.6.18-194.3.1.el5"
+            self.__report["kernel_version"] = "2.6.18-194.3.1.el5"
         """
-        self._report["KernelVersion"] = release()
+        self.__report["kernel_version"] = release()
 
     def _check_os(self):
         """
         :return
-            self._report["OS"] = "Centos-6.5"
+            self.__report["os"] = "Centos-6.5"
         """
-        self._report["OS"] = "-".join(linux_distribution())
+        self.__report["os"] = "-".join(linux_distribution())
 
     def _check_memory(self):
         """
         :return
-            self._report["Memory"] = "128G"
-            self._report["SwapEnable"] = "off"
+            self.__report["memory"] = "128G"
+            self.__report["swap_enable"] = "off"
         """
         with open("/proc/meminfo") as meminfo:
             for line in meminfo:
                 if ToolBox.isnotcomment(line) and "MemTotal" in line:
-                    self._report["Memory"] = ToolBox.convert(
+                    self.__report["memory"] = ToolBox.convert(
                         int(line.split(":")[1].strip().split()[0]) * 1024
                     )
                 elif ToolBox.isnotcomment(line) and "SwapCached" in line:
                     if int(line.split(":")[1].strip().split()[0]) > 0:
-                        self._report["SwapEnable"] = "on"
+                        self.__report["swap_enable"] = "on"
                     else:
-                        self._report["SwapEnable"] = "off"
+                        self.__report["swap_enable"] = "off"
             pass
 
     def _check_cpu(self):
         """
         : return
-            self._report["Processor"] = 32  # logic processors
-            self._report["Cores"] = 16  # physical cores
-            self._report["Siblings"] = 16  # siblings
-            self._report["HyperThreadingEnable"] = "on"
+            self.__report["Processor"] = 32  # logic processors
+            self.__report["Cores"] = 16  # physical cores
+            self.__report["Siblings"] = 16  # siblings
+            self.__report["HyperThreadingEnable"] = "on"
         """
-        self._report["Processor"] = 0
-        self._report["Cores"] = 0
-        self._report["Siblings"] = 0
-        self._report["HyperThreadingEnable"] = None
+        self.__report["processors"] = 0
+        self.__report["cores"] = 0
+        self.__report["siblings"] = 0
+        self.__report["hyperthreading_enable"] = None
 
         with open("/proc/cpuinfo") as cpu_info:
             for line in cpu_info:
                 if ToolBox.isnotcomment(line):
                     if "processor" in line:
-                        self._report["Processor"] += 1
+                        self.__report["processors"] += 1
                     if "cpu cores" in line:
-                        self._report["Cores"] = line.split(":")[1].strip()
+                        self.__report["cores"] = line.split(":")[1].strip()
                     if "siblings" in line:
-                        self._report["Siblings"] = line.split(":")[1].strip()
-        self._report["Processor"] = str(self._report["Processor"])
-        if self._report["Siblings"] == self._report["Cores"]:
-            self._report["HyperThreadingEnable"] = "on"
+                        self.__report["siblings"] = line.split(":")[1].strip()
+        self.__report["processors"] = str(self.__report["processors"])
+        if self.__report["siblings"] == self.__report["cores"]:
+            self.__report["hyperthreading_enable"] = "on"
         else:
-            self._report["HyperThreadingEnable"] = "off"
+            self.__report["hyperthreading_enable"] = "off"
 
     def _check_disk(self):
         """
-        : return
-            self._report["MountPoint_1"] = "/data1"
+        : () = >
+            self.__report["disk_1"] = ("/data1","20%", "100G")
+            self.__report["mt_num"] = 10
         """
         _cmd = "df -h"
         _index = 1
@@ -151,13 +152,17 @@ class Inspector(object):
         _stderr = _disk.stderr.readlines()
         for line in _stdout:
             if ToolBox.isnotcomment(line) and "/dev/" in line:
-                self._report["MountPoint_%d" % _index] = line.split()[5]
+                line = line.split()
+                self.__report["disk_%d" % _index] = (
+                    line[5] + "=" + line[4] + "+" + line[3]
+                )
                 _index += 1
+        self.__report["disk_num"] = _index - 1
 
     def _check_io(self):
         """
         : return
-            self._report["MountPoint_1_IO"] = "200MB/s"
+            self.__report["disk_1_io"] = "200MB/s"
         """
         pass
         # for each disk mounted, test its I/O
@@ -165,7 +170,7 @@ class Inspector(object):
     def _check_ip(self):
         """
         : return
-            self._report[""]
+            self.__report["netwk_*"] =
         """
         _cmd = "ip a"
         _index = 1
@@ -177,13 +182,13 @@ class Inspector(object):
                 line = line.split()
                 for col in line:
                     if "/" in col and "127" not in col:
-                        self._report["IP_%d" % _index] = col.split("/")[0]
+                        self.__report["netwk_%d" % _index] = col.split("/")[0]
                         _index += 1
 
     def _check_connectivity(self):
         """
         : return
-            self._report["FailureConnectivity"] = "110.222.222.22,
+            self.__report["FailureConnectivity"] = "110.222.222.22,
              111.22.223.22"
         """
         with open("/etc/hosts") as host_list:
@@ -201,20 +206,20 @@ class Inspector(object):
         _umask = Popen(args=_cmd, stdout=PIPE, stderr=PIPE, shell=True)
         _stdout = _umask.stdout.readlines()
         _stderr = _umask.stderr.readlines()
-        self._report["Umask"] = _stdout[0].strip()
+        self.__report["umask"] = _stdout[0].strip()
 
     def _check_hostname(self):
         """
         : return
-            self._report["Hostname"] = "hadoop001"
+            self.__report["hostname"] = "hadoop001"
         """
-        self._report["Hostname"] = node()
+        self.__report["hostname"] = node()
 
     def _check_iptables(self):
         """
         Turn off iptable before check
         : return
-            self._report["IptableStatus"] = "off"
+            self.__report["IptableStatus"] = "off"
         """
         _cmd_turnoff = ["service iptables stop", "chkconfig iptables off"]
         _result = Popen(_cmd_turnoff, shell=True, stdout=PIPE, stderr=PIPE)
@@ -224,34 +229,34 @@ class Inspector(object):
         _iptables_status = Popen(_cmd, shell=True, stdout=PIPE)
         for line in _iptables_status.stdout.readlines():
             if "Firewall is not running" in line:
-                self._report["IptableStatus"] = "off"
+                self.__report["iptable_status"] = "off"
             else:
-                self._report["IptableStatus"] = "on"
+                self.__report["iptable_status"] = "on"
 
     def _check_selinux(self):
         """
         : return
-            self._report["SelinuxStatus"] = "disabled"
+            self.__report["SelinuxStatus"] = "disabled"
         """
         _cmd_selinux = "getenforce"
         _result = Popen(_cmd_selinux, shell=True, stdout=PIPE)
-        self._report["SelinuxStatus"] = _result.stdout.readlines()[0].strip()
+        self.__report["selinux_status"] = _result.stdout.readlines()[0].strip()
 
     def _check_desktop(self):
         """
         : return
-            self._report["DesktopStatus"] = "off"
+            self.__report["DesktopStatus"] = "off"
         """
         with open("/etc/inittab") as init:
             if (ToolBox.isnotcomment(line) and "3" in line for line in init):
-                self._report["DesktopStatus"] = "off"
+                self.__report["desktop_status"] = "off"
             else:
-                self._report["DesktopStatus"] = "on"
+                self.__report["desktop_status"] = "on"
 
     def _check_openssh(self):
         """
         : return
-            self._report[
+            self.__report[
                 "openssh"] = "openssh-clients-5.3p1-118.1.el6_8.x86_64"
             openssh-clients-5.3p1-118.1.el6_8.x86_64
             openssh-server-5.3p1-118.1.el6_8.x86_64
@@ -262,52 +267,52 @@ class Inspector(object):
         _result = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
         for line in _result.stdout.readlines():
             if pattern.match(line):
-                self._report["openssh"] = line.strip("\n")
+                self.__report["openssh"] = line.strip("\n")
 
     def _check_jdk(self):
         """
         :return
-            self._report["jdk"] = "java version "1.7.0_67"
+            self.__report["jdk"] = "java version "1.7.0_67"
             java version "1.7.0_67"
             Java(TM) SE Runtime Environment (build 1.7.0_67-b01)
             Java HotSpot(TM) 64-Bit Server VM (build 24.65-b04, mixed mode)
         """
         _jdk = "java -version"
         _result = Popen(_jdk, shell=True, stderr=PIPE, stdout=PIPE)
-        self._report["jdk"] = "None"
+        self.__report["jdk"] = "None"
         for line in _result.stdout.readlines():
             if "java version" in line:
-                self._report["jdk"] = line.split()[2].strip("\"")
+                self.__report["jdk"] = line.split()[2].strip("\"")
 
     def _check_clock(self):
         """
         : return
-            self._report["Time"] = "2016/12/5 20:19:22"
+            self.__report["Time"] = "2016/12/5 20:19:22"
         """
-        self._report["Time"] = strftime("%Z-%Y-%m-%d %H:%M:%S", localtime())
+        self.__report["time"] = strftime("%Z-%Y-%m-%d %H:%M:%S", localtime())
 
     def _check_openfile(self):
         """
         : return
-            self._report["openfile"] = 65536
+            self.__report["openfile"] = 65536
         """
         cmd = "ulimit -n"
         _result = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-        self._report["openfile"] = _result.stdout.readlines()[0].strip("\n")
+        self.__report["openfile"] = _result.stdout.readlines()[0].strip("\n")
 
     def _check_nproc(self):
         """
         :return
-            self._report["nproc"] = 1024
+            self.__report["nproc"] = 1024
         """
         cmd = "ulimit -u"
         _result = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-        self._report["nproc"] = _result.stdout.readlines()[0].strip("\n")
+        self.__report["nproc"] = _result.stdout.readlines()[0].strip("\n")
 
     def _check_hugetable(self):
         """
         : return
-            self._report["hugetable"] = "off"
+            self.__report["hugetable"] = "off"
         """
         pass
 
@@ -340,8 +345,8 @@ class Inspector(object):
             mkdir(path)
         _report_path = join(path, (self._hostname + ".json"))
         with open(_report_path, "w") as _report_file:
-            dump(self._report, _report_file, encoding='utf-8')
-            print dumps(self._report, sort_keys=True, indent=1)
+            dump(self.__report, _report_file, encoding='utf-8')
+            print(dumps(self.__report, sort_keys=True, indent=1))
 
 if __name__ == "__main__":
     inspector = Inspector(argv[1])

@@ -95,7 +95,7 @@ class MTerminal(object):
                     worker_pool.join()
                     if "inspect" in _action_names:
                         # do assemble
-                        assembler = Assembler(batch_conf.get_batch_params())
+                        assembler = Assembler()
                         assembler.start()
                     logger.info("Mission accomplished in %s seconds" %
                                 (_timer.timer()))
