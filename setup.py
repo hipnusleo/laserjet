@@ -14,15 +14,12 @@
             - enum34
             - ipaddress
         - pyasn1
-    - Mysql-python (optional)
-
 - rpm
     - python
     - python-devel
     - python-setuptools
     - python-setuptools-devel
     - gcc
-    - mysql-devel
     - libffi-devel
     - openssl-devel
 
@@ -43,7 +40,6 @@ RPM = [
     "python-setuptools",
     "python-setuptools-devel",
     "gcc",
-    "mysql-devel",
     "libffi-devel",
     "openssl-devel"
 ]
@@ -68,7 +64,6 @@ TARBALL = [
     "six-1.10.0",
     "cryptography-1.7.1",
     "paramiko-2.1.1",
-    #"MySQL-python-1.2.5",
 ]
 # -----------------
 
@@ -178,20 +173,20 @@ def setup():
         print "Setup terminated"
         raise SystemExit
     install_source()
-    if len(argv) == 3 and argv[2].lower() == "+mysql":
-        path = abspath(join(PYPI_DIR, "MySQL-python-1.2.5"))
-        cmd = "cd %s && python setup.py install" % path
-        print cmd
-        cli = ShellCLI(cmd)
-        if cli._stdout:
-            print cli._stdout
-            print "+Done install MySQL-python-1.2.5 +++++++++++"
-        if cli._stderr:
-            print cli._stderr
-            print "Failed in installing MySQL-python-1.2.5 -----------"
-            print "Setup terminated"
-            raise SystemExit
-    print "Done"
+#    if len(argv) == 3 and argv[2].lower() == "+mysql":
+#        path = abspath(join(PYPI_DIR, "MySQL-python-1.2.5"))
+#        cmd = "cd %s && python setup.py install" % path
+#        print cmd
+#        cli = ShellCLI(cmd)
+#        if cli._stdout:
+#            print cli._stdout
+#            print "+Done install MySQL-python-1.2.5 +++++++++++"
+#        if cli._stderr:
+#            print cli._stderr
+#            print "Failed in installing MySQL-python-1.2.5 -----------"
+#            print "Setup terminated"
+#            raise SystemExit
+#    print "Done"
 
 
 if __name__ == "__main__":
@@ -204,4 +199,4 @@ if __name__ == "__main__":
         else:
             print "Setup Canceled"
     else:
-        print"use 'python setup install' or 'python setup install +mysql'"
+        print"use 'python setup install'"
